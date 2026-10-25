@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f5">
+<title>RecycleRight</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23b4ebc4'/%3E%3Cpath d='M9 12h3l1.5-2h5L20 12h3v10H9z' fill='none' stroke='%232b4a35' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='17' r='3' fill='none' stroke='%232b4a35' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --ink: #0a0a0a;
+    --green: #35a82f;
+    --red: #d9434e;
+    --amber: #d98a00;
+    --mint: #b4ebc4;
+    --mint-ink: #2b4a35;
+    --ok: #a5e49b;
+    --bad: #e8606a;
+    --maybe: #f3c969;
+    --logo: #d9d9d9;
+    --head: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --body: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--body);
+    background: #1e1e1e;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font-family: inherit; border: 0; cursor: pointer; }
+
+  /* phone-sized app column (full screen on phones, a phone frame on desktop) */
+  #app {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  @media (min-width: 600px) {
+    #app { height: min(880px, 96dvh); border-radius: 28px; }
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: max(20px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .screen.active { display: flex; }
+
+  /* 1 - welcome */
+  #welcome { background: #fff; justify-content: center; align-items: center; text-align: center; cursor: pointer; }
+  #welcome h1 { font-family: var(--head); font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+
+  /* shared top bar */
+  .topbar { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 4px; }
+  .logo { width: 36px; height: 36px; background: var(--logo); border-radius: 3px; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .brand { font-family: var(--head); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .title { font-family: var(--head); text-align: center; font-size: 30px; font-weight: 700; letter-spacing: -0.015em; margin-top: 18px; }
+
+  /* 2 - scan */
+  .scan-middle { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; }
+  .scan-btn {
+    width: 156px; height: 156px; border-radius: 50%;
+    background: var(--mint); color: var(--mint-ink);
+    display: flex; justify-content: center; align-items: center;
+    transition: transform .12s ease;
+  }
+  .scan-btn:active { transform: scale(.95); }
+  .scan-btn svg { width: 80px; height: 80px; }
+  #status { min-height: 18px; font-size: 13px; font-weight: 500; color: #6b6b6b; text-align: center; padding: 0 20px; }
+  .fact { text-align: center; font-size: 13px; font-weight: 700; line-height: 1.35; padding: 0 28px; margin-bottom: 14px; }
+  .card { background: var(--card); border-radius: 10px; padding: 18px; }
+  .learn { text-align: center; font-size: 13px; font-weight: 700; line-height: 1.4; }
+  .learn p { padding: 0 6px; }
+  .pill {
+    display: inline-block; margin-top: 12px;
+    background: var(--mint); color: #0a0a0a;
+    font-size: 12.5px; font-weight: 700;
+    padding: 7px 18px; border-radius: 999px;
+  }
+
+  /* 3 - results */
+  #results .stack { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+  .label-sm { font-size: 12.5px; font-weight: 700; }
+  .big { font-family: var(--head); font-size: 38px; line-height: 1.05; font-weight: 700; color: var(--green); letter-spacing: -0.01em; margin-top: 10px; word-break: break-word; }
+  .big.good  { color: var(--green); }
+  .big.bad   { color: var(--red); }
+  .big.maybe { color: var(--amber); }
+  .conf { margin-top: 8px; font-size: 12px; font-weight: 500; color: #8a8a8a; }
+  .conf:empty { display: none; }
+  .sub { font-size: 13.5px; font-weight: 700; margin-bottom: 14px; }
+  .row { display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 700; margin-bottom: 12px; }
+  .icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+  .icon.yes { background: var(--ok); }
+  .icon.no { background: var(--bad); }
+  .icon.maybe { background: var(--maybe); }
+  .icon svg { width: 14px; height: 14px; }
+  .body p { font-size: 13px; font-weight: 700; line-height: 1.4; margin-top: 12px; }
+  .primary {
+    margin-top: 18px; width: 100%;
+    background: var(--mint); color: #0a0a0a;
+    font-size: 15px; font-weight: 700;
+    padding: 14px; border-radius: 999px;
+  }
+  .spacer { flex: 1; min-height: 14px; }
+
+  /* camera */
+  #camera { background: #000; padding: 0; }
+  #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cam-top { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; color: #fff; font-size: 14px; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+  .cam-bottom { position: absolute; bottom: max(26px, env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; align-items: center; justify-content: center; }
+  .shutter { width: 74px; height: 74px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,.45); background-clip: padding-box; }
+  .shutter:active { transform: scale(.93); }
+  .cam-cancel { position: absolute; left: 24px; color: #fff; background: transparent; font-size: 15px; font-weight: 700; }
+
+  /* busy overlay */
+  #busy { position: absolute; inset: 0; background: rgba(245,245,245,.92); display: none; flex-direction: column; justify-content: center; align-items: center; gap: 14px; z-index: 10; font-weight: 700; font-size: 15px; }
+  #busy.on { display: flex; }
+  .spin { width: 38px; height: 38px; border-radius: 50%; border: 4px solid var(--mint); border-top-color: var(--green); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* types of plastic */
+  .type { display: flex; gap: 14px; align-items: flex-start; margin-top: 12px; }
+  .type b { font-size: 13.5px; }
+  .type span { font-size: 13px; font-weight: 500; line-height: 1.4; display: block; margin-top: 2px; color: #333; }
+  .num { width: 34px; height: 34px; border-radius: 50%; background: var(--mint); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .note { margin-top: 14px; font-size: 13px; font-weight: 700; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 1 - Welcome -->
+  <section id="welcome" class="screen active">
+    <h1>Welcome to<br>Recycle Right</h1>
+  </section>
+
+  <!-- 2 - Start your scan -->
+  <section id="scan" class="screen">
+    <div class="topbar">
+      <div class="logo"><img src="logo.png" alt="" onerror="this.remove()"></div>
+      <div class="brand">RecycleRight</div>
+    </div>
+    <h1 class="title">Start your scan</h1>
+
+    <div class="scan-middle">
+      <button class="scan-btn" id="scanBtn" aria-label="Open camera">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 21a4 4 0 0 1 4-4h7.5l3-5h19l3 5H52a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/>
+          <circle cx="32" cy="33" r="9.5"/>
+        </svg>
+      </button>
+      <div id="status"></div>
+    </div>
+
+    <p class="fact">Over 90% of plastic in the United States is not recycled properly.</p>
+    <div class="card learn">
+      <p>Learn more about the different types of plastic and how they can be recycled.</p>
+      <button class="pill" id="typesBtn">Types of Plastic</button>
+    </div>
+  </section>
+
+  <!-- Camera -->
+  <section id="camera" class="screen">
+    <video id="video" playsinline muted autoplay></video>
+    <div class="cam-top">Center the item in the frame</div>
+    <div class="cam-bottom">
+      <button class="cam-cancel" id="camCancel">Cancel</button>
+      <button class="shutter" id="shutter" aria-label="Take photo"></button>
+    </div>
+  </section>
+
+  <!-- 3 - Results -->
+  <section id="results" class="screen">
+    <div class="topbar">
+      <div class="logo"><img src="logo.png" alt="" onerror="this.remove()"></div>
+      <div class="brand">RecycleRight</div>
+    </div>
+    <h1 class="title">Results</h1>
+    <div class="stack">
+      <div class="card">
+        <div class="label-sm">Plastic Type</div>
+        <div class="big" id="rTitle"></div>
+        <div class="conf" id="rConf"></div>
+      </div>
+      <div class="card">
+        <div class="sub" id="rSub"></div>
+        <div id="rRows"></div>
+        <div class="body" id="rBody"></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <button class="primary" id="againBtn">Scan again</button>
+  </section>
+
+  <!-- Types of plastic -->
+  <section id="types" class="screen">
+    <div class="topbar">
+      <div class="logo"><img src="logo.png" alt="" onerror="this.remove()"></div>
+      <div class="brand">RecycleRight</div>
+    </div>
+    <h1 class="title">Types of Plastic</h1>
+    <div class="card" style="margin-top:18px">
+      <div class="type"><div class="num">1</div><div><b>PET</b><span>Water and soda bottles, some food jars.</span></div></div>
+      <div class="type"><div class="num">2</div><div><b>HDPE</b><span>Milk jugs, shampoo bottles, and some grocery bags and film.</span></div></div>
+      <div class="type"><div class="num">4</div><div><b>LDPE</b><span>Bread bags, produce bags, and stretch wrap.</span></div></div>
+      <div class="type"><div class="num">5</div><div><b>PP</b><span>Yogurt tubs, bottle caps, and takeout containers.</span></div></div>
+      <p class="note">Plastic film like bags and wrap usually can't go in curbside bins. Use a store drop-off bin instead.</p>
+    </div>
+    <div class="spacer"></div>
+    <button class="primary" id="backBtn">Back</button>
+  </section>
+
+  <div id="busy"><div class="spin"></div><div>Analyzing…</div></div>
+  <input type="file" id="fileInput" accept="image/*" hidden>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script>
+/* ==== PURE:START (settings + detection decoding) ==== */
+
+/* ================================================================
+   1. YOUR MODEL SETTINGS  (this is the only part you must edit)
+   ================================================================
+   modelUrl   : where best.onnx lives in your repo.
+   classNames : the EXACT class names, in the EXACT order of the `names:`
+                list in your Roboflow data.yaml. To print them in your
+                notebook:   print(list(YOLO("best.pt").names.values()))
+                Wrong order = wrong labels, so copy it, don't guess.
+   confThreshold : minimum confidence to count as a detection (0 to 1).
+*/
+const CONFIG = {
+  modelUrl: 'model/best.onnx',
+  inputSize: 640,
+  confThreshold: 0.40,
+  iouThreshold: 0.50,
+  classNames: [
+    'Metal', 'Multi-layer Plastic', 'PET Bottle', 'Plastic', 'Plastic Film',
+    'Styrofoam', 'Trash', 'cardboard', 'glass', 'paper'
+  ]
+};
+
+function iou(a, b) {
+  const x1 = Math.max(a.x1, b.x1), y1 = Math.max(a.y1, b.y1);
+  const x2 = Math.min(a.x2, b.x2), y2 = Math.min(a.y2, b.y2);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const ua = (a.x2 - a.x1) * (a.y2 - a.y1) + (b.x2 - b.x1) * (b.y2 - b.y1) - inter;
+  return ua <= 0 ? 0 : inter / ua;
+}
+
+/* Turns the raw ONNX output into a list of detections (best first).
+   Handles the normal YOLO export [1, 4+classes, 8400] and the
+   end-to-end export [1, N, 6]. `nc` is the number of classes in the
+   model (null for the end-to-end export). */
+function decodeOutput(t) {
+  const d = t.data, dims = t.dims, conf = CONFIG.confThreshold;
+  const cands = [];
+
+  if (dims.length === 3 && dims[2] === 6) {
+    for (let i = 0; i < dims[1]; i++) {
+      const o = i * 6, score = d[o + 4];
+      if (score < conf) continue;
+      cands.push({ cls: Math.round(d[o + 5]), score, x1: d[o], y1: d[o + 1], x2: d[o + 2], y2: d[o + 3] });
+    }
+    cands.sort((a, b) => b.score - a.score);
+    return { dets: cands, nc: null };
+  }
+
+  const N = dims[2], nc = dims[1] - 4;
+  for (let i = 0; i < N; i++) {
+    let best = 0, bs = -1;
+    for (let c = 0; c < nc; c++) {
+      const s = d[(4 + c) * N + i];
+      if (s > bs) { bs = s; best = c; }
+    }
+    if (bs < conf) continue;
+    const cx = d[i], cy = d[N + i], w = d[2 * N + i], h = d[3 * N + i];
+    cands.push({ cls: best, score: bs, x1: cx - w / 2, y1: cy - h / 2, x2: cx + w / 2, y2: cy + h / 2 });
+  }
+  cands.sort((a, b) => b.score - a.score);
+  const keep = [];
+  for (const c of cands) {
+    if (keep.every(k => k.cls !== c.cls || iou(k, c) < CONFIG.iouThreshold)) keep.push(c);
+  }
+  return { dets: keep, nc };
+}
+
+/* Best detection per class, highest confidence first. */
+function topClasses(dets, n) {
+  const seen = new Set(), out = [];
+  for (const d of dets) {
+    if (seen.has(d.cls)) continue;
+    seen.add(d.cls);
+    out.push(d);
+    if (out.length === n) break;
+  }
+  return out;
+}
+/* ==== PURE:END ==== */
+
+
+/* ================================================================
+   2. WHAT THE RESULTS SCREEN SAYS FOR EACH CLASS
+   ================================================================
+   The key must match a class name above (capitalization doesn't matter).
+   tone : 'good' (green title), 'bad' (red), 'maybe' (amber)
+   rows : [label, 'yes' | 'no' | 'maybe']  -> check, X or ? icon
+   "Plastic Film" is your Figma text. The rest is starter text:
+   edit it to match your county's real rules before you share the site. */
+const INFO = {
+  'Plastic Film': {
+    title: 'HDPE FILM', sub: 'High Density Polyethylene', tone: 'good',
+    rows: [['Grocery Store Drop-off', 'yes'], ['Curbside Recycling', 'no']],
+    body: [
+      'Good news! High Density Polyethylene Film is recyclable in your area.',
+      'High Density Polyethylene Film must be recycled through specialized drop-off bins like NexTrex bins or Grocery Store drop-off bins.',
+      'High Density Polyethylene Film cannot be recycled through regular curbside-pickup recycling.'
+    ]
+  },
+  'Multi-layer Plastic': {
+    title: 'MULTI-LAYER PLASTIC', sub: 'Mixed-material packaging', tone: 'bad',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'no']],
+    body: [
+      'Multi-layer plastic, like chip bags and snack wrappers, is made of several materials fused together.',
+      'It usually cannot be recycled through drop-off bins or curbside recycling. Place it in the trash.'
+    ]
+  },
+  'PET Bottle': {
+    title: 'PET BOTTLE', sub: 'Polyethylene Terephthalate (#1)', tone: 'good',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'yes']],
+    body: [
+      'Good news! PET bottles can be recycled through regular curbside recycling.',
+      'Empty the bottle and put the cap back on before you recycle it.'
+    ]
+  },
+  'Plastic': {
+    title: 'PLASTIC', sub: 'Rigid plastic items', tone: 'maybe',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'maybe']],
+    body: [
+      'Many rigid plastics, like bottles, tubs and jugs, can go in curbside recycling. Others, like plastic cups, usually cannot.',
+      'Check the number inside the recycling symbol and your local guidelines.'
+    ]
+  },
+  'Styrofoam': {
+    title: 'STYROFOAM', sub: 'Expanded polystyrene', tone: 'bad',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'no']],
+    body: [
+      'Styrofoam is not accepted in regular curbside recycling.',
+      'Some areas hold special drop-off events, so check with your county before throwing it away.'
+    ]
+  },
+  'Metal': {
+    title: 'METAL', sub: 'Cans and foil', tone: 'good',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'yes']],
+    body: [
+      'Good news! Metal cans and clean foil can be recycled through regular curbside recycling.',
+      'Rinse food off cans and ball up foil before you recycle it.'
+    ]
+  },
+  'cardboard': {
+    title: 'CARDBOARD', sub: 'Boxes and paperboard', tone: 'good',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'yes']],
+    body: [
+      'Good news! Clean, dry cardboard can be recycled through regular curbside recycling.',
+      'Flatten boxes first, and throw away greasy pieces like pizza box bottoms.'
+    ]
+  },
+  'glass': {
+    title: 'GLASS', sub: 'Bottles and jars', tone: 'maybe',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'maybe']],
+    body: [
+      'Glass bottles and jars are accepted in many curbside programs. Rinse them first.',
+      'Drinking glasses, mirrors and window glass usually are not recyclable. Check your local guidelines.'
+    ]
+  },
+  'paper': {
+    title: 'PAPER', sub: 'Paper and mail', tone: 'good',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'yes']],
+    body: [
+      'Good news! Clean, dry paper can be recycled through regular curbside recycling.',
+      'Wet, greasy or food-soiled paper, tissues and napkins belong in the trash.'
+    ]
+  },
+  'Trash': {
+    title: 'TRASH', sub: 'Not recyclable', tone: 'bad',
+    rows: [['Grocery Store Drop-off', 'no'], ['Curbside Recycling', 'no']],
+    body: [
+      'This item cannot be recycled in your area.',
+      'Putting it in the trash keeps it from contaminating the rest of your recycling.'
+    ]
+  }
+};
+
+const NO_ITEM = {
+  title: 'NOT SURE', sub: 'No item detected', tone: 'maybe', rows: [],
+  body: [
+    'We could not find an item in that photo.',
+    'Try again with the item centered, in good light, against a plain background.'
+  ]
+};
+
+const INFO_BY_KEY = {};
+Object.keys(INFO).forEach(k => { INFO_BY_KEY[k.toLowerCase()] = INFO[k]; });
+function infoFor(name) {
+  return INFO_BY_KEY[String(name).toLowerCase()] || {
+    title: String(name).toUpperCase(), sub: '', tone: 'maybe', rows: [],
+    body: ['Check your local recycling guidelines for this item.']
+  };
+}
+
+/* ================================================================
+   3. APP CODE (you shouldn't need to change anything below)
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const DEBUG = new URLSearchParams(location.search).has('debug');   // add ?debug to the URL
+const screens = ['welcome', 'scan', 'camera', 'results', 'types'];
+function show(name) { screens.forEach(s => $(s).classList.toggle('active', s === name)); }
+function setStatus(msg) { $('status').textContent = msg || ''; }
+function busy(on) { $('busy').classList.toggle('on', on); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+const ICONS = {
+  yes:   '<svg viewBox="0 0 16 16" fill="none" stroke="#0a0a0a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></svg>',
+  no:    '<svg viewBox="0 0 16 16" fill="none" stroke="#0a0a0a" stroke-width="2.4" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>',
+  maybe: '<svg viewBox="0 0 16 16" fill="none" stroke="#0a0a0a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 6.2a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2.9-1.2 1.8"/><circle cx="8" cy="12.6" r=".6" fill="#0a0a0a"/></svg>'
+};
+
+/* ---------- Model ---------- */
+let modelPromise = null;
+function loadModel() {
+  if (modelPromise) return modelPromise;
+  if (typeof ort === 'undefined') {
+    setStatus('Could not load the AI runtime. Check your connection and reload.');
+    return Promise.reject(new Error('onnxruntime-web did not load'));
+  }
+  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+  setStatus('Loading model…');
+  modelPromise = ort.InferenceSession.create(CONFIG.modelUrl, { executionProviders: ['wasm'] })
+    .then(s => { setStatus(''); return s; })
+    .catch(err => {
+      console.error(err);
+      modelPromise = null;
+      setStatus('Could not load the model. Check that ' + CONFIG.modelUrl + ' exists.');
+      throw err;
+    });
+  return modelPromise;
+}
+
+const work = document.createElement('canvas');
+work.width = work.height = CONFIG.inputSize;
+const wctx = work.getContext('2d', { willReadFrequently: true });
+
+/* Fit the photo inside 640x640 with black bars (same as Roboflow "Fit (black edges)"). */
+function preprocess(src, sw, sh) {
+  const S = CONFIG.inputSize;
+  const scale = Math.min(S / sw, S / sh);
+  const nw = Math.round(sw * scale), nh = Math.round(sh * scale);
+  const dx = Math.floor((S - nw) / 2), dy = Math.floor((S - nh) / 2);
+  wctx.fillStyle = '#000';
+  wctx.fillRect(0, 0, S, S);
+  wctx.imageSmoothingQuality = 'high';
+  wctx.drawImage(src, 0, 0, sw, sh, dx, dy, nw, nh);
+  const px = wctx.getImageData(0, 0, S, S).data;
+  const area = S * S;
+  const f = new Float32Array(3 * area);
+  for (let i = 0; i < area; i++) {
+    f[i] = px[i * 4] / 255;
+    f[area + i] = px[i * 4 + 1] / 255;
+    f[2 * area + i] = px[i * 4 + 2] / 255;
+  }
+  return new ort.Tensor('float32', f, [1, 3, S, S]);
+}
+
+async function analyze(src, w, h) {
+  busy(true);
+  try {
+    const session = await loadModel();
+    const input = preprocess(src, w, h);
+    const out = await session.run({ [session.inputNames[0]]: input });
+    const { dets, nc } = decodeOutput(out[session.outputNames[0]]);
+    const warn = (nc !== null && nc !== CONFIG.classNames.length)
+      ? 'Class list mismatch: model has ' + nc + ' classes, page lists ' + CONFIG.classNames.length
+      : '';
+    renderResult(topClasses(dets, 3), warn);
+    show('results');
+  } catch (err) {
+    console.error(err);
+    show('scan');
+    setStatus('Something went wrong. Please try again.');
+  } finally {
+    busy(false);
+  }
+}
+
+/* ---------- Results screen ---------- */
+function nameOf(cls) { return CONFIG.classNames[cls] || ('Class ' + cls); }
+
+function renderResult(top, warn) {
+  const best = top && top[0];
+  const r = best ? infoFor(nameOf(best.cls)) : NO_ITEM;
+  const title = $('rTitle');
+  title.textContent = r.title;
+  title.className = 'big ' + (r.tone || 'good');
+
+  const parts = [];
+  if (best) parts.push('Confidence ' + Math.round(best.score * 100) + '%');
+  if (DEBUG && top.length > 1) {
+    parts.push('Also: ' + top.slice(1).map(d => nameOf(d.cls) + ' ' + Math.round(d.score * 100) + '%').join(', '));
+  }
+  if (warn) parts.push(warn);
+  $('rConf').textContent = parts.join(' · ');
+
+  $('rSub').textContent = r.sub;
+  $('rRows').innerHTML = r.rows.map(([label, state]) =>
+    '<div class="row"><div class="icon ' + state + '">' + ICONS[state] + '</div><span>' + esc(label) + '</span></div>'
+  ).join('');
+  $('rBody').innerHTML = r.body.map(t => '<p>' + esc(t) + '</p>').join('');
+}
+
+/* ---------- Camera ---------- */
+let stream = null;
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  $('video').srcObject = null;
+}
+async function openCamera() {
+  setStatus('');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $('fileInput').click();   // fallback: phone camera / photo picker
+    return;
+  }
+  show('camera');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+    const v = $('video');
+    v.srcObject = stream;
+    await v.play();
+  } catch (err) {
+    console.warn('Camera unavailable, using file picker', err);
+    stopCamera();
+    show('scan');
+    setStatus('Camera blocked. Choose or take a photo instead.');
+    $('fileInput').click();
+  }
+}
+function capture() {
+  const v = $('video');
+  if (!v.videoWidth) return;
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  stopCamera();
+  analyze(c, c.width, c.height);
+}
+
+/* ---------- Wiring ---------- */
+function goScan() { show('scan'); loadModel().catch(() => {}); }
+$('welcome').addEventListener('click', goScan);
+setTimeout(() => { if ($('welcome').classList.contains('active')) goScan(); }, 1800);
+
+$('scanBtn').addEventListener('click', openCamera);
+$('shutter').addEventListener('click', capture);
+$('camCancel').addEventListener('click', () => { stopCamera(); show('scan'); });
+$('againBtn').addEventListener('click', () => { setStatus(''); show('scan'); });
+$('typesBtn').addEventListener('click', () => show('types'));
+$('backBtn').addEventListener('click', () => show('scan'));
+
+$('fileInput').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const bmp = await createImageBitmap(f);
+    analyze(bmp, bmp.width, bmp.height);
+  } catch (err) {
+    console.error(err);
+    setStatus('Could not read that photo.');
+  }
+});
+</script>
+</body>
+</html>
