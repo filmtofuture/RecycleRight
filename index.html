@@ -590,22 +590,30 @@ function renderResult(top, warn) {
 
 /* ---------- Camera ---------- */
 let stream = null;
+let fallbackReady = false;   /* true after a camera error: tapping the status text opens the photo picker */
 function stopCamera() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   $('video').srcObject = null;
 }
 async function openCamera() {
   setStatus('');
+  fallbackReady = false;
+  $('status').style.cursor = '';
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     $('fileInput').click();   // fallback: phone camera / photo picker
     return;
   }
   show('camera');
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false
-    });
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+    } catch (e) {
+      if (e.name === 'NotAllowedError' || e.name === 'NotReadableError') throw e;
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
     const v = $('video');
     v.srcObject = stream;
     await v.play();
@@ -613,8 +621,16 @@ async function openCamera() {
     console.warn('Camera unavailable, using file picker', err);
     stopCamera();
     show('scan');
-    setStatus('Camera blocked. Choose or take a photo instead.');
-    $('fileInput').click();
+    const msgs = {
+      NotAllowedError: 'Camera permission denied. Allow it in Chrome site settings, or tap here to choose or take a photo instead.',
+      NotFoundError: 'No camera found. Tap here to choose or take a photo instead.',
+      NotReadableError: 'Camera is in use by another app (try stopping screen recording). Tap here to choose or take a photo instead.'
+    };
+    setStatus(msgs[err.name] || ('Camera error (' + err.name + '). Tap here to choose or take a photo instead.'));
+    /* Browsers block fileInput.click() here (the tap's permission expired during the camera request),
+       so the user taps the message to open the picker. */
+    fallbackReady = true;
+    $('status').style.cursor = 'pointer';
   }
 }
 function capture() {
@@ -633,6 +649,7 @@ $('welcome').addEventListener('click', goScan);
 setTimeout(() => { if ($('welcome').classList.contains('active')) goScan(); }, 1800);
 
 $('scanBtn').addEventListener('click', openCamera);
+$('status').addEventListener('click', () => { if (fallbackReady) $('fileInput').click(); });
 $('shutter').addEventListener('click', capture);
 $('camCancel').addEventListener('click', () => { stopCamera(); show('scan'); });
 $('againBtn').addEventListener('click', () => { setStatus(''); show('scan'); });
