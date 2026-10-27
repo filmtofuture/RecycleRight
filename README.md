@@ -4,7 +4,7 @@
 
 RecycleRight is a free web app from [Film to Future](#about-film-to-future). It uses your phone's camera and an AI model to identify an item, then explains whether it belongs in curbside recycling, a drop-off location, or the trash, and why.
 
-**Live site:** https://YOUR-USERNAME.github.io/RecycleRight/
+**Live site:** https://filmtofuture.github.io/RecycleRight/
 
 ---
 
